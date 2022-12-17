@@ -5,9 +5,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
 import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
-import ru.netology.coroutines.dto.Comment
-import ru.netology.coroutines.dto.Post
-import ru.netology.coroutines.dto.PostWithComments
+import ru.netology.coroutines.dto.*
 import java.io.IOException
 import java.lang.Exception
 import java.lang.RuntimeException
@@ -30,7 +28,11 @@ fun main() {
                 val posts = getPosts(client)
                     .map { post ->
                         async {
-                            PostWithComments(post, getComments(client, post.id))
+                            val comments = getComments(client, post.id).map {
+                                comment ->
+                                CommentWithAuthor(comment, getAuthor(client,comment.authorId))
+                            }
+                            PostWithComments(post, getAuthor(client,post.authorId), comments)
                         }
                     }.awaitAll()
                 println("!!! Посты:"+posts)
@@ -78,3 +80,6 @@ suspend fun getComments(client: OkHttpClient, id: Long): List<Comment> =
 
 suspend fun getPosts(client: OkHttpClient): List<Post> =
     makeRequest("$BASE_URL/api/slow/posts", client, object : TypeToken<List<Post>>() {})
+
+suspend fun getAuthor(client: OkHttpClient, id: Long): Author =
+    makeRequest("$BASE_URL/api/slow/authors/$id",client,object :TypeToken<Author>(){})
